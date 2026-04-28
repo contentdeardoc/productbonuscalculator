@@ -34,9 +34,10 @@ export const TEAMS = {
     },
     // Reports attached to this team — add as many as needed
     reports: [
-      { id: 'ai-sla',  label: 'SLA Report',        url: '', source: 'salesforce' },
-      { id: 'ai-ob',   label: 'Onboarding Report',  url: '', source: 'salesforce' },
-      { id: 'ai-kpi',  label: 'KPI Scorecard',      url: '', source: 'sheets' },
+      { id: 'ai-ob',      label: 'AI Chat Onboarding', url: 'https://deardoc.lightning.force.com/lightning/r/Report/000PZ000005y0DZ2AY/view?quer', source: 'salesforce' },
+      { id: 'ai-kpi',     label: 'AI Chat ScoreCard',  url: 'https://docs.google.com/spreadsheets/d/1SW-L4M-YBROBcZlYbr2pxLHuOGK0YdLiVs6Dq4bNe4A', source: 'sheets' },
+      { id: 'ai-pls-kpi', label: 'PLS Scorecard',      url: 'https://docs.google.com/spreadsheets/d/1QgHdkyJnJNlHJwR9frk6aQ14_xCdgehGXP4yHrIGHO0', source: 'sheets' },
+      { id: 'ai-pls-ob',  label: 'PLS Onboarding',     url: 'https://docs.google.com/spreadsheets/d/1QgHdkyJnJNlHJwR9frk6aQ14_xCdgehGXP4yHrIGHO0/edit?gi', source: 'salesforce' },
     ],
   },
   dash: {
