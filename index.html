@@ -776,22 +776,29 @@ window.sendSnapshot = async function() {
 
   const checked = [...document.querySelectorAll('#snap-teams input:checked')].map(el => el.value);
   const rows = [];
+  const reportRows = [];
   checked.forEach(teamKey => {
     const teamLabel = TEAMS[teamKey]?.label || teamKey;
+    // Member bonus rows
     Object.entries(state[teamKey]?.groups || {}).forEach(([, members]) => {
       members.forEach(m => {
         rows.push({ team:teamLabel, member:m.name, sla:m.sla, ob:m.ob, kpi:m.kpi,
           total:(m.total||0).toFixed(2), pip:m.pip?'YES':'' });
       });
     });
+    // Report reference rows — appended as separate entries with type='report'
+    (state[teamKey]?.reports || []).forEach(r => {
+      if (r.url) reportRows.push({ team:teamLabel, member:`[Report] ${r.label}`, sla:`Source: ${r.source}`, ob:'', kpi:'', total:r.url, pip:'' });
+    });
   });
+  const allRows = [...rows, ...reportRows];
   if (!rows.length) { toast.className='toast error'; toast.textContent='No teams selected.'; return; }
 
   btn.disabled=true; btn.textContent='Sending…';
   try {
-    await postSnapshot({ manager:user.name, month, notes, rows });
+    await postSnapshot({ manager:user.name, month, notes, rows:allRows });
     toast.className='toast success';
-    toast.innerHTML=`Snapshot sent — ${rows.length} records for ${month}. <a href="${SHEET_URL}" target="_blank">Open audit log</a>`;
+    toast.innerHTML=`Snapshot sent — ${rows.length} member records + ${reportRows.length} report links for ${month}. <a href="${SHEET_URL}" target="_blank">Open audit log</a>`;
     btn.textContent='Sent';
     setTimeout(()=>{ btn.disabled=false; btn.textContent='Send snapshot'; }, 4000);
   } catch(e) {
