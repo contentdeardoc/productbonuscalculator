@@ -2,7 +2,7 @@
 // Edit this file to add users, teams, reports, or update the Apps Script URL.
 
 export const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyH1-kiSnOU-nDrDhe8iYNts2zRk39C8LVHdNJshoOa6rRxbY9Ek8EHzZNwp6ecr8lB/exec';
-export const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1GYEBkd6VNqaCIMerYLuUa1baXv0G5D6k5khG0Rsru0U/edit';
+export const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/12ikQ0aMmFHAiw1PNwJQtgAKexoJftbNqblstWAxdorM/edit?gid=0#gid=0';
 
 // ─── Users & roles ────────────────────────────────────────────────────────────
 // role: 'admin' | 'manager' | 'finance'
