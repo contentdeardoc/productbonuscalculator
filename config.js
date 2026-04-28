@@ -29,7 +29,7 @@ export const TEAMS = {
       },
       'ai-pls': {
         label: 'PLS',
-        members: ['PLS Specialist 1'],
+        members: ['Pablo Hernandez', 'David Dueñas'],
       },
     },
     // Reports attached to this team — add as many as needed
