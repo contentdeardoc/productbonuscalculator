@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bonus Calculator — Internal Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & tokens ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #f4f4f2;
+  --surface:  #ffffff;
+  --border:   #e2e2de;
+  --border2:  #d0d0cb;
+  --text:     #1a1a18;
+  --muted:    #6b6b66;
+  --accent:   #1a6b3c;
+  --accent-bg:#edf7f1;
+  --accent-lt:#d0eddc;
+  --danger:   #c0392b;
+  --danger-bg:#fdf0ee;
+  --warn:     #92610a;
+  --warn-bg:  #fdf6e3;
+  --blue:     #185fa5;
+  --blue-bg:  #e8f0fb;
+  --purple:   #5b4fcf;
+  --purple-bg:#f0eeff;
+  --radius:   10px;
+  --radius-lg:14px;
+  --shadow:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+  font-family: 'DM Sans', sans-serif;
+}
+
+body { background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+/* ── Top nav ────────────────────────────────────────────────── */
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; height: 52px; position: sticky; top: 0; z-index: 100;
+}
+.nav-left { display: flex; align-items: center; gap: 12px; }
+.nav-logo { width: 28px; height: 28px; }
+.nav-title { font-size: 14px; font-weight: 500; color: var(--muted); }
+.badge-internal {
+  font-size: 11px; font-weight: 500; color: var(--accent);
+  border: 1px solid var(--accent); border-radius: 20px;
+  padding: 2px 10px; letter-spacing: .02em;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.nav-user { font-size: 13px; color: var(--muted); }
+.nav-role {
+  font-size: 11px; font-weight: 500; padding: 2px 8px;
+  border-radius: 20px; text-transform: capitalize;
+}
+.role-admin   { background: var(--purple-bg); color: var(--purple); }
+.role-manager { background: var(--accent-bg); color: var(--accent); }
+.role-finance { background: var(--blue-bg);   color: var(--blue); }
+.btn-logout {
+  font-size: 13px; color: var(--muted); background: none;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 5px 12px; cursor: pointer;
+}
+.btn-logout:hover { background: var(--bg); }
+
+/* ── Page wrapper ───────────────────────────────────────────── */
+#app { max-width: 1100px; margin: 0 auto; padding: 36px 28px 80px; }
+
+/* ── Login screen ───────────────────────────────────────────── */
+#login-screen {
+  min-height: calc(100vh - 52px);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 40px 44px;
+  width: 400px; box-shadow: var(--shadow-md);
+}
+.login-card h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+.login-card p  { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+.login-card label { font-size: 12px; font-weight: 500; display: block; margin-bottom: 5px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.login-card input { width: 100%; border: 1px solid var(--border2); border-radius: var(--radius); padding: 9px 12px; font-size: 14px; font-family: inherit; background: var(--bg); }
+.login-card input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.btn-primary {
+  width: 100%; margin-top: 16px; background: var(--accent); color: #fff;
+  border: none; border-radius: var(--radius); padding: 10px; font-size: 14px;
+  font-weight: 500; cursor: pointer; font-family: inherit;
+}
+.btn-primary:hover { opacity: .9; }
+.login-error { margin-top: 10px; font-size: 13px; color: var(--danger); background: var(--danger-bg); padding: 8px 12px; border-radius: var(--radius); display: none; }
+.login-error.show { display: block; }
+
+/* ── Page header ────────────────────────────────────────────── */
+.page-header { margin-bottom: 32px; }
+.page-header h1 { font-size: 26px; font-weight: 600; margin-bottom: 4px; }
+.page-header p  { color: var(--muted); font-size: 14px; }
+
+/* ── Top action bar ─────────────────────────────────────────── */
+.action-bar {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.btn-outline {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 8px 16px; font-size: 13px;
+  font-weight: 500; cursor: pointer; font-family: inherit; color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-outline:hover { background: var(--bg); }
+.btn-accent {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--radius); padding: 8px 18px; font-size: 13px;
+  font-weight: 500; cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-accent:hover { opacity: .9; }
+.btn-accent:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Team tabs ──────────────────────────────────────────────── */
+.team-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--border);
+  margin-bottom: 24px; flex-wrap: wrap;
+}
+.team-tab {
+  padding: 10px 20px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  transition: all .15s; white-space: nowrap; background: none; border-top: none;
+  border-left: none; border-right: none; font-family: inherit;
+}
+.team-tab:hover:not(.active)   { color: var(--text); background: var(--bg); }
+.team-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.team-tab.locked { opacity: .35; cursor: not-allowed; }
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px 24px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); margin-bottom: 14px;
+}
+
+/* ── Goals grid ─────────────────────────────────────────────── */
+.goals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 700px) { .goals-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ── Sub-section label ──────────────────────────────────────── */
+.subsection {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted);
+  padding: 6px 0 12px; border-bottom: 1px solid var(--border);
+  margin-bottom: 14px; margin-top: 6px;
+}
+
+/* ── Member card ────────────────────────────────────────────── */
+.member-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.member-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.avatar {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--accent-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: var(--accent); flex-shrink: 0;
+}
+.member-name-input {
+  flex: 1; font-size: 14px; font-weight: 500; border: none;
+  background: none; color: var(--text); font-family: inherit;
+}
+.member-name-input:focus { outline: none; }
+.member-name-input[readonly] { cursor: default; }
+.btn-remove {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 18px; line-height: 1; padding: 0 4px;
+}
+.btn-remove:hover { color: var(--danger); }
+
+/* ── Inputs ─────────────────────────────────────────────────── */
+.inputs-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.input-group { display: flex; flex-direction: column; gap: 4px; }
+.input-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pct-wrap { position: relative; }
+.pct-wrap input, .input-group input, .input-group select {
+  width: 100%; border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 7px 10px; font-size: 13px; font-family: 'DM Mono', monospace;
+  background: var(--bg); color: var(--text);
+}
+.pct-wrap input { padding-right: 26px; }
+.pct-wrap input:focus, .input-group input:focus, .input-group select:focus {
+  outline: none; border-color: var(--accent); background: var(--surface);
+}
+.pct-wrap input[readonly], .input-group input[readonly] {
+  background: var(--bg); color: var(--muted); cursor: default;
+}
+.pct-sym {
+  position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; color: var(--muted); pointer-events: none;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── Results row ────────────────────────────────────────────── */
+.results-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  padding-top: 12px; border-top: 1px solid var(--border);
+}
+.metric { background: var(--bg); border-radius: var(--radius); padding: 10px 12px; }
+.metric-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 3px; }
+.metric-val { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; }
+.metric-val.green  { color: var(--accent); }
+.metric-val.amber  { color: var(--warn); }
+.metric-val.red    { color: var(--danger); }
+
+/* ── Breakdown pills ────────────────────────────────────────── */
+.breakdown { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pill {
+  font-size: 11px; font-family: 'DM Mono', monospace;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 10px; color: var(--muted);
+}
+.pill.pip { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+
+/* ── Add member button ──────────────────────────────────────── */
+.btn-add {
+  width: 100%; background: none; border: 1px dashed var(--border2);
+  border-radius: var(--radius); padding: 8px; font-size: 13px;
+  color: var(--muted); cursor: pointer; font-family: inherit; margin-bottom: 16px;
+}
+.btn-add:hover { background: var(--bg); color: var(--text); }
+
+/* ── Chart card ─────────────────────────────────────────────── */
+.chart-wrap { position: relative; height: 200px; }
+
+/* ── Reports section ────────────────────────────────────────── */
+.report-row {
+  display: grid; grid-template-columns: 28px 1fr 130px 120px auto;
+  gap: 10px; align-items: center; padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.report-row:last-child { border-bottom: none; }
+.source-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.src-sf     { background: #e8f4ff; }
+.src-sheets { background: #e8f7ee; }
+.src-aws    { background: #fff4e8; }
+.report-url-input {
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 6px 10px; font-size: 12px; font-family: 'DM Mono', monospace;
+  background: var(--bg); color: var(--text); width: 100%;
+}
+.report-url-input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.report-url-input[readonly] { color: var(--muted); cursor: default; }
+select.source-select {
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 6px 8px; font-size: 12px; background: var(--bg); font-family: inherit;
+}
+.btn-snap-report {
+  background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-lt);
+  border-radius: var(--radius); padding: 5px 12px; font-size: 12px; font-weight: 500;
+  cursor: pointer; white-space: nowrap; font-family: inherit;
+}
+.btn-snap-report:hover { background: var(--accent-lt); }
+.btn-add-report {
+  background: none; border: 1px dashed var(--border2); border-radius: var(--radius);
+  padding: 7px 14px; font-size: 12px; color: var(--muted); cursor: pointer;
+  font-family: inherit; margin-top: 10px;
+}
+.btn-add-report:hover { background: var(--bg); }
+
+/* ── Snapshot modal ─────────────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.35); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 28px 32px;
+  width: 420px; max-width: 95vw; box-shadow: var(--shadow-md);
+}
+.modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.modal .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.modal .input-group { margin-bottom: 14px; }
+.modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+.modal-footer button { flex: 1; padding: 9px; border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; }
+.btn-cancel-modal { background: none; border: 1px solid var(--border2); color: var(--muted); }
+.btn-send { background: var(--accent); color: #fff; border: none; }
+.btn-send:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Toast ──────────────────────────────────────────────────── */
+.toast { display: none; margin-top: 14px; padding: 10px 14px; border-radius: var(--radius); font-size: 13px; }
+.toast.success { display: block; background: var(--accent-bg); color: var(--accent); }
+.toast.error   { display: block; background: var(--danger-bg); color: var(--danger); }
+.toast a { color: inherit; font-weight: 600; }
+
+/* ── Readonly banner ────────────────────────────────────────── */
+.readonly-banner {
+  background: var(--blue-bg); color: var(--blue);
+  border: 1px solid #b5d4f4; border-radius: var(--radius);
+  padding: 8px 14px; font-size: 13px; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── Summary table ──────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--border); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+tr:last-child td { border-bottom: none; }
+.td-mono { font-family: 'DM Mono', monospace; }
+.td-total { font-weight: 600; font-family: 'DM Mono', monospace; }
+.badge-pip { font-size: 10px; background: var(--danger-bg); color: var(--danger); padding: 1px 6px; border-radius: 20px; margin-left: 4px; }
+.team-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+/* ── Misc ───────────────────────────────────────────────────── */
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="main-nav" class="hidden">
+  <div class="nav-left">
+    <svg class="nav-logo" viewBox="0 0 28 28" fill="none">
+      <circle cx="14" cy="14" r="14" fill="#1a6b3c"/>
+      <path d="M8 14a6 6 0 1 1 12 0" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="14" cy="14" r="2.5" fill="#fff"/>
+    </svg>
+    <span class="nav-title">Internal Tools</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <span class="nav-role" id="nav-role-badge"></span>
+    <button class="btn-logout" onclick="doLogout()">Sign out</button>
+  </div>
+</nav>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>Bonus Calculator</h1>
+    <p>Sign in with your DearDoc email to continue.</p>
+    <label for="email-input">Work email</label>
+    <input type="email" id="email-input" placeholder="you@getdeardoc.com" autocomplete="email"/>
+    <button class="btn-primary" onclick="doLogin()">Continue</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="hidden">
+  <div id="app">
+
+    <div class="page-header">
+      <h1 id="page-title">Bonus Calculator</h1>
+      <p id="page-subtitle"></p>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar" id="action-bar">
+      <button class="btn-outline" id="btn-audit" onclick="openLink('https://docs.google.com/spreadsheets/d/1GYEBkd6VNqaCIMerYLuUa1baXv0G5D6k5khG0Rsru0U/edit')">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        View audit log
+      </button>
+      <button class="btn-accent" id="btn-snapshot" onclick="openSnapshotModal()">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><circle cx="12" cy="13" r="3"/></svg>
+        Take snapshot
+      </button>
+    </div>
+
+    <!-- Readonly banner for finance -->
+    <div class="readonly-banner hidden" id="readonly-banner">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+      You have view-only access. Contact a manager to make changes.
+    </div>
+
+    <!-- Team tabs -->
+    <div class="team-tabs" id="team-tabs"></div>
+
+    <!-- Tab panels -->
+    <div id="tab-panels"></div>
+
+  </div>
+</div>
+
+<!-- SNAPSHOT MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2>Take snapshot</h2>
+    <p class="sub">Saves a timestamped audit record to the finance log.</p>
+    <div class="input-group"><div class="input-label">Month</div><input type="text" id="snap-month" placeholder="e.g. April 2026"/></div>
+    <div class="input-group"><div class="input-label">Notes (optional)</div><input type="text" id="snap-notes" placeholder="e.g. Final — approved"/></div>
+    <div class="input-group">
+      <div class="input-label">Teams to include</div>
+      <div id="snap-teams" style="display:flex;flex-direction:column;gap:8px;margin-top:6px;font-size:13px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel-modal" onclick="closeSnapshotModal()">Cancel</button>
+      <button class="btn-send" id="btn-send" onclick="sendSnapshot()">Send snapshot</button>
+    </div>
+    <div class="toast" id="snap-toast"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script type="module">
+import { login, logout, getCurrentUser, canEditTeam, canViewTeam, canSnapshot, canViewAudit, isAdmin } from './auth.js';
+import { calcBonus } from './calc.js';
+import { TEAMS, SHEET_URL, SCRIPT_URL } from './config.js';
+import { sendSnapshot as postSnapshot } from './snapshot.js';
+
+// ── State ─────────────────────────────────────────────────────
+let user = null;
+const state = {}; // { teamKey: { base, groups: { grpKey: [{name,sla,ob,kpi,_results}] } } }
+const charts = {};
+
+// ── Boot ──────────────────────────────────────────────────────
+function boot() {
+  user = getCurrentUser();
+  if (user) showApp();
+  else showLogin();
+}
+
+function showLogin() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('main-app').classList.add('hidden');
+  document.getElementById('main-nav').classList.add('hidden');
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').classList.remove('hidden');
+  document.getElementById('main-nav').classList.remove('hidden');
+
+  // Nav
+  document.getElementById('nav-user-name').textContent = user.name;
+  const rb = document.getElementById('nav-role-badge');
+  rb.textContent = user.role; rb.className = `nav-role role-${user.role}`;
+
+  // Page subtitle
+  const sub = { admin: 'Admin — full access', manager: 'Manager — your teams only', finance: 'Finance — view only' };
+  document.getElementById('page-subtitle').textContent = sub[user.role] || '';
+
+  // Action bar
+  if (!canSnapshot(user)) document.getElementById('btn-snapshot').classList.add('hidden');
+  if (!canViewAudit(user)) document.getElementById('btn-audit').classList.add('hidden');
+  if (user.role === 'finance') document.getElementById('readonly-banner').classList.remove('hidden');
+
+  initState();
+  buildTabs();
+}
+
+// ── Auth ──────────────────────────────────────────────────────
+window.doLogin = function() {
+  const email = document.getElementById('email-input').value;
+  const result = login(email);
+  if (result.ok) { user = result.user; showApp(); }
+  else {
+    const el = document.getElementById('login-error');
+    el.textContent = result.error; el.classList.add('show');
+  }
+};
+document.getElementById('email-input').addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
+
+window.doLogout = function() { logout(); user = null; showLogin(); };
+
+// ── Init state ────────────────────────────────────────────────
+function initState() {
+  Object.entries(TEAMS).forEach(([teamKey, teamCfg]) => {
+    if (!canViewTeam(user, teamKey)) return;
+    state[teamKey] = {
+      base: teamCfg.base,
+      reports: teamCfg.reports.map(r => ({ ...r })),
+      groups: {},
+    };
+    Object.entries(teamCfg.groups).forEach(([grpKey, grpCfg]) => {
+      state[teamKey].groups[grpKey] = grpCfg.members.map(name => ({
+        name, sla: 100, ob: 100, kpi: 100,
+      }));
+    });
+  });
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+let activeTab = null;
+
+function buildTabs() {
+  const tabBar = document.getElementById('team-tabs');
+  const panels = document.getElementById('tab-panels');
+  tabBar.innerHTML = ''; panels.innerHTML = '';
+
+  const visibleTeams = Object.keys(TEAMS).filter(k => canViewTeam(user, k));
+  // Add summary tab for admin/finance
+  const showSummary = user.role === 'admin' || user.role === 'finance';
+
+  visibleTeams.forEach(teamKey => {
+    const t = TEAMS[teamKey];
+    const btn = document.createElement('button');
+    btn.className = 'team-tab'; btn.textContent = t.label;
+    btn.dataset.team = teamKey;
+    btn.onclick = () => switchTab(teamKey);
+    tabBar.appendChild(btn);
+    panels.appendChild(buildTeamPanel(teamKey));
+  });
+
+  if (showSummary) {
+    const btn = document.createElement('button');
+    btn.className = 'team-tab'; btn.textContent = 'Summary';
+    btn.dataset.team = 'summary'; btn.onclick = () => switchTab('summary');
+    tabBar.appendChild(btn);
+    const p = document.createElement('div');
+    p.id = 'panel-summary'; p.classList.add('hidden');
+    p.innerHTML = `
+      <div class="card"><div class="card-title">All teams — total bonus</div><div class="chart-wrap" style="height:220px"><canvas id="chart-summary" role="img" aria-label="All teams bonus totals">All teams.</canvas></div></div>
+      <div class="card"><div class="card-title">Full breakdown</div><div id="summary-table"></div></div>`;
+    panels.appendChild(p);
+  }
+
+  switchTab(visibleTeams[0] || (showSummary ? 'summary' : null));
+}
+
+function switchTab(teamKey) {
+  if (!teamKey) return;
+  activeTab = teamKey;
+  document.querySelectorAll('.team-tab').forEach(b => b.classList.toggle('active', b.dataset.team === teamKey));
+  document.querySelectorAll('#tab-panels > div').forEach(p => p.classList.toggle('hidden', p.id !== `panel-${teamKey}`));
+  if (teamKey === 'summary') updateSummary();
+  else setTimeout(() => updateChart(teamKey), 50);
+}
+
+// ── Build team panel ──────────────────────────────────────────
+function buildTeamPanel(teamKey) {
+  const teamCfg = TEAMS[teamKey];
+  const editable = canEditTeam(user, teamKey);
+  const panel = document.createElement('div');
+  panel.id = `panel-${teamKey}`; panel.classList.add('hidden');
+
+  // Goals card
+  let goalsHtml = `<div class="card"><div class="card-title">Monthly targets &amp; base variable</div><div class="goals-grid">`;
+  ['SLA goal','Onboarding goal','KPI goal'].forEach((label, i) => {
+    const ids = ['sla-goal','ob-goal','kpi-goal'];
+    goalsHtml += `<div class="input-group"><div class="input-label">${label}</div><div class="pct-wrap"><input type="number" id="${teamKey}-${ids[i]}" value="100" min="0" max="200" step="0.01" ${editable?'':'readonly'} oninput="window.recalcTeam('${teamKey}')"/><span class="pct-sym">%</span></div></div>`;
+  });
+  goalsHtml += `<div class="input-group"><div class="input-label">Monthly variable (MXN$)</div><input type="number" id="${teamKey}-base" value="${teamCfg.base}" min="0" step="100" ${editable?'':'readonly'} oninput="window.recalcTeam('${teamKey}')"/></div>`;
+  goalsHtml += `</div></div>`;
+
+  // Member groups
+  let membersHtml = '';
+  Object.entries(teamCfg.groups).forEach(([grpKey, grpCfg]) => {
+    membersHtml += `<div class="subsection">${grpCfg.label}</div><div id="grp-${grpKey}"></div>`;
+    if (editable) membersHtml += `<button class="btn-add" onclick="window.addMember('${teamKey}','${grpKey}')">+ Add member</button>`;
+  });
+
+  // Chart
+  const chartHtml = `<div class="card"><div class="card-title">Team bonus breakdown</div><div class="chart-wrap"><canvas id="chart-${teamKey}" role="img" aria-label="${teamCfg.label} bonus chart">${teamCfg.label} bonuses.</canvas></div></div>`;
+
+  // Reports card
+  let reportsHtml = `<div class="card"><div class="card-title">Source reports</div><div style="font-size:12px;color:var(--muted);margin-bottom:14px">Paste report URLs here. These are saved as audit references alongside each snapshot.</div><div id="reports-${teamKey}">`;
+  state[teamKey].reports.forEach((r, i) => {
+    reportsHtml += reportRowHtml(teamKey, i, r, editable);
+  });
+  reportsHtml += `</div>`;
+  if (editable) reportsHtml += `<button class="btn-add-report" onclick="window.addReport('${teamKey}')">+ Add report</button>`;
+  reportsHtml += `</div>`;
+
+  panel.innerHTML = goalsHtml + membersHtml + chartHtml + reportsHtml;
+  return panel;
+}
+
+function reportRowHtml(teamKey, i, r, editable) {
+  const icons = { salesforce: '☁️', sheets: '📊', aws: '🟠', other: '🔗' };
+  const srcClass = { salesforce:'src-sf', sheets:'src-sheets', aws:'src-aws', other:'' };
+  const sources = ['salesforce','sheets','aws','other'];
+  const sourceOpts = sources.map(s => `<option value="${s}" ${r.source===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('');
+  return `<div class="report-row" id="rrow-${teamKey}-${i}">
+    <div class="source-icon ${srcClass[r.source]||''}">${icons[r.source]||'🔗'}</div>
+    <input class="report-url-input" type="url" placeholder="Paste report URL…" value="${r.url||''}" ${editable?'':'readonly'} oninput="window.updateReportUrl('${teamKey}',${i},this.value)"/>
+    <input style="border:1px solid var(--border2);border-radius:var(--radius);padding:6px 8px;font-size:12px;background:var(--bg);font-family:inherit;width:100%" placeholder="Report label" value="${r.label||''}" ${editable?'':'readonly'} oninput="window.updateReportLabel('${teamKey}',${i},this.value)"/>
+    ${editable ? `<select class="source-select" onchange="window.updateReportSource('${teamKey}',${i},this.value)">${sourceOpts}</select>` : `<span style="font-size:12px;color:var(--muted);text-transform:capitalize">${r.source}</span>`}
+    ${r.url && editable ? `<button class="btn-snap-report" onclick="window.openReportUrl('${teamKey}',${i})">Open</button>` : '<span></span>'}
+  </div>`;
+}
+
+// ── Render members ────────────────────────────────────────────
+function renderGroup(teamKey, grpKey) {
+  const el = document.getElementById(`grp-${grpKey}`); if (!el) return;
+  const editable = canEditTeam(user, teamKey);
+  el.innerHTML = '';
+  (state[teamKey].groups[grpKey] || []).forEach((m, i) => {
+    const d = document.createElement('div');
+    d.className = 'member-card'; d.id = `mc-${grpKey}-${i}`;
+    const av = (m.name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    d.innerHTML = `
+      <div class="member-header">
+        <div class="avatar">${av}</div>
+        <input class="member-name-input" type="text" value="${m.name}" ${editable?'':'readonly'} oninput="window.updateName('${teamKey}','${grpKey}',${i},this.value)"/>
+        ${editable ? `<button class="btn-remove" onclick="window.removeMember('${teamKey}','${grpKey}',${i})">×</button>` : ''}
+      </div>
+      <div class="inputs-grid">
+        <div class="input-group"><div class="input-label">SLA obtained</div><div class="pct-wrap"><input type="number" value="${m.sla}" min="0" max="200" step="0.01" ${editable?'':'readonly'} oninput="window.onInp('${teamKey}','${grpKey}',${i},'sla',this.value)"/><span class="pct-sym">%</span></div></div>
+        <div class="input-group"><div class="input-label">Onboarding obtained</div><div class="pct-wrap"><input type="number" value="${m.ob}" min="0" max="200" step="0.01" ${editable?'':'readonly'} oninput="window.onInp('${teamKey}','${grpKey}',${i},'ob',this.value)"/><span class="pct-sym">%</span></div></div>
+        <div class="input-group"><div class="input-label">KPI score</div><div class="pct-wrap"><input type="number" value="${m.kpi}" min="0" max="200" step="0.01" ${editable?'':'readonly'} oninput="window.onInp('${teamKey}','${grpKey}',${i},'kpi',this.value)"/><span class="pct-sym">%</span></div></div>
+      </div>
+      <div class="results-row" id="res-${grpKey}-${i}"></div>
+      <div class="breakdown" id="brk-${grpKey}-${i}"></div>`;
+    el.appendChild(d);
+    recalcMember(teamKey, grpKey, i);
+  });
+}
+
+function recalcMember(teamKey, grpKey, i) {
+  const m = state[teamKey].groups[grpKey][i];
+  const base = parseFloat(document.getElementById(`${teamKey}-base`)?.value) || 4000;
+  const r = calcBonus(m.sla, m.ob, m.kpi, base);
+  Object.assign(m, r);
+  const res = document.getElementById(`res-${grpKey}-${i}`);
+  const brk = document.getElementById(`brk-${grpKey}-${i}`);
+  if (!res) return;
+  const cls = r.total >= base * 1.1 ? 'green' : r.total >= base * 0.8 ? 'amber' : 'red';
+  res.innerHTML = `
+    <div class="metric"><div class="metric-label">SLA bonus</div><div class="metric-val">$${r.slaBonus.toFixed(0)}</div></div>
+    <div class="metric"><div class="metric-label">OB bonus</div><div class="metric-val">$${r.obBonus.toFixed(0)}</div></div>
+    <div class="metric"><div class="metric-label">KPI bonus</div><div class="metric-val">$${r.kpiBonus.toFixed(0)}</div></div>
+    <div class="metric"><div class="metric-label">Total</div><div class="metric-val ${cls}">$${r.total.toFixed(0)}</div></div>`;
+  brk.innerHTML = r.pip
+    ? `<span class="pill pip">PIP — SLA or OB below 70%. SLA+OB forfeited.</span>`
+    : `<span class="pill">SLA ×${r.sm}</span><span class="pill">OB ×${r.om}</span><span class="pill">KPI ×${r.km}</span>`;
+}
+
+// ── Global handlers ───────────────────────────────────────────
+window.onInp = (teamKey, grpKey, i, field, val) => {
+  state[teamKey].groups[grpKey][i][field] = parseFloat(val) || 0;
+  recalcMember(teamKey, grpKey, i);
+  updateChart(teamKey);
+  if (activeTab === 'summary') updateSummary();
+};
+window.updateName = (teamKey, grpKey, i, val) => { state[teamKey].groups[grpKey][i].name = val; };
+window.recalcTeam = (teamKey) => {
+  const t = state[teamKey];
+  Object.entries(t.groups).forEach(([grpKey, members]) => {
+    members.forEach((_, i) => recalcMember(teamKey, grpKey, i));
+  });
+  updateChart(teamKey);
+  if (activeTab === 'summary') updateSummary();
+};
+window.addMember = (teamKey, grpKey) => {
+  state[teamKey].groups[grpKey].push({ name: 'New member', sla: 100, ob: 100, kpi: 100 });
+  renderGroup(teamKey, grpKey); updateChart(teamKey);
+};
+window.removeMember = (teamKey, grpKey, i) => {
+  state[teamKey].groups[grpKey].splice(i, 1);
+  renderGroup(teamKey, grpKey); updateChart(teamKey);
+};
+window.updateReportUrl = (teamKey, i, val) => { state[teamKey].reports[i].url = val; };
+window.updateReportLabel = (teamKey, i, val) => { state[teamKey].reports[i].label = val; };
+window.updateReportSource = (teamKey, i, val) => {
+  state[teamKey].reports[i].source = val;
+  const container = document.getElementById(`reports-${teamKey}`);
+  const editable = canEditTeam(user, teamKey);
+  container.innerHTML = state[teamKey].reports.map((r, idx) => reportRowHtml(teamKey, idx, r, editable)).join('');
+};
+window.addReport = (teamKey) => {
+  state[teamKey].reports.push({ id: `r-${Date.now()}`, label: 'New report', url: '', source: 'salesforce' });
+  const container = document.getElementById(`reports-${teamKey}`);
+  const editable = canEditTeam(user, teamKey);
+  container.innerHTML = state[teamKey].reports.map((r, i) => reportRowHtml(teamKey, i, r, editable)).join('');
+};
+window.openReportUrl = (teamKey, i) => {
+  const url = state[teamKey].reports[i].url;
+  if (url) openLink(url);
+};
+
+// ── Charts ────────────────────────────────────────────────────
+function updateChart(teamKey) {
+  const id = `chart-${teamKey}`;
+  const labels = [], sla = [], ob = [], kpi = [];
+  Object.values(state[teamKey].groups).forEach(members => {
+    members.forEach(m => {
+      labels.push(m.name.split(' ')[0]);
+      sla.push(+(m.slaBonus||0).toFixed(0));
+      ob.push(+(m.obBonus||0).toFixed(0));
+      kpi.push(+(m.kpiBonus||0).toFixed(0));
+    });
+  });
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id); if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [
+      { label:'SLA', data:sla, backgroundColor:'#1a6b3c', stack:'s' },
+      { label:'OB',  data:ob,  backgroundColor:'#4da87a', stack:'s' },
+      { label:'KPI', data:kpi, backgroundColor:'#a8d5b8', stack:'s' },
+    ]},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false } },
+      scales:{ x:{stacked:true,ticks:{font:{size:11}}}, y:{stacked:true,ticks:{callback:v=>'$'+v.toLocaleString()}} } },
+  });
+}
+
+function updateSummary() {
+  const labels=[], totals=[], colors=[];
+  const colorMap = { ai:'#1a6b3c', dash:'#5b4fcf', fulfil:'#185fa5' };
+  Object.entries(state).forEach(([teamKey, teamState]) => {
+    Object.values(teamState.groups).forEach(members => {
+      members.forEach(m => {
+        labels.push(m.name.split(' ')[0]);
+        totals.push(+(m.total||0).toFixed(0));
+        colors.push(colorMap[teamKey]||'#888');
+      });
+    });
+  });
+  const id = 'chart-summary';
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (ctx) charts[id] = new Chart(ctx, {
+    type:'bar', data:{labels, datasets:[{label:'Total',data:totals,backgroundColor:colors}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()}}}},
+  });
+  const tbl = document.getElementById('summary-table'); if (!tbl) return;
+  const teamLabel = { ai:'AI Chat', dash:'Dashboard', fulfil:'Fulfillment' };
+  const dot = { ai:'#1a6b3c', dash:'#5b4fcf', fulfil:'#185fa5' };
+  let html = `<table><thead><tr><th>Member</th><th>Team</th><th>SLA</th><th>Onboarding</th><th>KPI</th><th>Total</th></tr></thead><tbody>`;
+  let grand = 0;
+  Object.entries(state).forEach(([teamKey, teamState]) => {
+    Object.values(teamState.groups).forEach(members => {
+      members.forEach(m => {
+        grand += m.total || 0;
+        html += `<tr>
+          <td>${m.name}${m.pip?'<span class="badge-pip">PIP</span>':''}</td>
+          <td><span class="team-dot" style="background:${dot[teamKey]}"></span>${teamLabel[teamKey]||teamKey}</td>
+          <td class="td-mono">$${(m.slaBonus||0).toFixed(0)}</td>
+          <td class="td-mono">$${(m.obBonus||0).toFixed(0)}</td>
+          <td class="td-mono">$${(m.kpiBonus||0).toFixed(0)}</td>
+          <td class="td-total">$${(m.total||0).toFixed(0)}</td>
+        </tr>`;
+      });
+    });
+  });
+  html += `<tr style="background:var(--bg)"><td colspan="5" style="font-weight:600;color:var(--muted)">Grand total</td><td class="td-total">$${grand.toFixed(0)}</td></tr>`;
+  html += `</tbody></table>`;
+  tbl.innerHTML = html;
+}
+
+// ── Snapshot modal ────────────────────────────────────────────
+window.openSnapshotModal = function() {
+  const teamsEl = document.getElementById('snap-teams');
+  teamsEl.innerHTML = '';
+  Object.entries(state).forEach(([teamKey]) => {
+    const label = TEAMS[teamKey]?.label || teamKey;
+    teamsEl.innerHTML += `<label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" value="${teamKey}" checked> ${label}</label>`;
+  });
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('snap-toast').className = 'toast';
+  document.getElementById('btn-send').disabled = false;
+  document.getElementById('btn-send').textContent = 'Send snapshot';
+};
+window.closeSnapshotModal = function() {
+  document.getElementById('modal-overlay').classList.remove('open');
+};
+
+window.sendSnapshot = async function() {
+  const month  = document.getElementById('snap-month').value.trim();
+  const notes  = document.getElementById('snap-notes').value.trim();
+  const toast  = document.getElementById('snap-toast');
+  const btn    = document.getElementById('btn-send');
+  if (!month) { toast.className='toast error'; toast.textContent='Please enter the month.'; return; }
+
+  const checked = [...document.querySelectorAll('#snap-teams input:checked')].map(el => el.value);
+  const rows = [];
+  checked.forEach(teamKey => {
+    const teamLabel = TEAMS[teamKey]?.label || teamKey;
+    Object.entries(state[teamKey]?.groups || {}).forEach(([, members]) => {
+      members.forEach(m => {
+        rows.push({ team:teamLabel, member:m.name, sla:m.sla, ob:m.ob, kpi:m.kpi,
+          total:(m.total||0).toFixed(2), pip:m.pip?'YES':'' });
+      });
+    });
+  });
+  if (!rows.length) { toast.className='toast error'; toast.textContent='No teams selected.'; return; }
+
+  btn.disabled=true; btn.textContent='Sending…';
+  try {
+    await postSnapshot({ manager:user.name, month, notes, rows });
+    toast.className='toast success';
+    toast.innerHTML=`Snapshot sent — ${rows.length} records for ${month}. <a href="${SHEET_URL}" target="_blank">Open audit log</a>`;
+    btn.textContent='Sent';
+    setTimeout(()=>{ btn.disabled=false; btn.textContent='Send snapshot'; }, 4000);
+  } catch(e) {
+    toast.className='toast error'; toast.textContent='Network error. Try again.';
+    btn.disabled=false; btn.textContent='Send snapshot';
+  }
+};
+
+// ── Initial render ────────────────────────────────────────────
+boot();
+
+// Render groups after panels are built (deferred so DOM exists)
+setTimeout(() => {
+  Object.keys(state).forEach(teamKey => {
+    Object.keys(state[teamKey].groups).forEach(grpKey => {
+      renderGroup(teamKey, grpKey);
+    });
+    updateChart(teamKey);
+  });
+}, 80);
+</script>
+</body>
+</html>
